@@ -1,10 +1,10 @@
 /* Customer.io helper used by every page: identifyUser(), trackEvent(), getUser().
    Set SITE_ID below. While it is "YOUR_SITE_ID" the calls only log to the console. */
 (function () {
-  var SITE_ID = "YOUR_SITE_ID";
+  var SITE_ID = "c5cb2083499c59d8055b";
   var REGION = "us"; // "us" or "eu"
   var STORE_KEY = "meridian_user";
-  var live = SITE_ID && SITE_ID !== "YOUR_SITE_ID";
+  var live = SITE_ID && SITE_ID !== "c5cb2083499c59d8055b";
 
   window._cio = window._cio || [];
   ["load", "identify", "sidstatus", "track", "page"].forEach(function (f) {
