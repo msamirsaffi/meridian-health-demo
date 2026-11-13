@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Supply Shop | Meridian Health</title>
+<link rel="stylesheet" href="style.css">
+<script src="cio.js"></script>
+<style>
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-top:20px}
+.prod{display:flex;flex-direction:column;gap:6px}
+.prod .img{height:70px;display:grid;place-items:center;font-size:36px;background:#e6f5ef;border-radius:8px}
+.prod .cat{color:var(--muted);font-size:13px}
+.prod .row{display:flex;gap:8px;margin-top:auto}
+.prod .row button{flex:1;padding:8px 10px;font-size:14px}
+button.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+button.ghost:hover{background:#e6f5ef}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.tabs button{background:#fff;color:var(--ink);border:1px solid var(--line);padding:8px 14px}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cartbox{margin-top:32px}
+.cartbox li{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);list-style:none}
+.cartbox ul{padding:0;margin:0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.demo{margin-top:24px;font-size:14px}
+.demo summary{cursor:pointer;color:var(--muted)}
+.demo .actions button{padding:8px 12px;font-size:14px}
+.who{text-align:center;color:var(--muted);font-size:14px;margin-top:4px}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="index.html">Meridian Health</a>
+  <nav><a href="index.html">Home</a><a href="plans.html">Plans</a><a href="book.html">Book a visit</a><a href="shop.html">Supply shop</a></nav>
+</header>
+<main>
+  <section class="hero"><h1>Health supply shop</h1><p>Over-the-counter essentials delivered to your door or ready for pickup.</p></section>
+  <div class="who" id="who"></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="pgrid" id="products"></div>
+
+  <section class="card cartbox">
+    <h2 style="margin:0 0 8px">Your cart</h2>
+    <ul id="cart"></ul>
+    <p><b id="total"></b></p>
+    <div class="form-row" style="max-width:420px;display:grid;gap:12px">
+      <div><label for="fulfil">Fulfillment</label>
+        <select id="fulfil"><option value="home_delivery">Home delivery</option><option value="clinic_pickup">Clinic pickup</option><option value="pharmacy_pickup">Pharmacy pickup</option></select></div>
+    </div>
+    <div class="actions">
+      <button id="checkout" class="ghost">Start checkout</button>
+      <button id="place">Place order</button>
+    </div>
+    <div class="msg" id="msg"></div>
+
+    <details class="demo">
+      <summary>Demo controls (simulate order updates)</summary>
+      <div class="actions">
+        <button data-life="order_shipped">Mark shipped</button>
+        <button data-life="order_delivered">Mark delivered</button>
+        <button data-life="order_cancelled">Cancel order</button>
+        <button data-life="order_refunded">Refund order</button>
+      </div>
+    </details>
+  </section>
+</main>
+<footer>Meridian Health is a fictional demo site for Customer.io testing.</footer>
+<script>
+var user = getUser();
+if (!user || !user.email) window.location.href = "index.html";
+document.getElementById("who").textContent = user && user.email ? "Shopping as " + user.email : "";
+
+var PRODUCTS = [
+ {sku:"THERM-01",name:"Digital Thermometer",price:14.99,cat:"Monitoring",e:"🌡️"},
+ {sku:"BP-02",name:"Home Blood Pressure Monitor",price:49.99,cat:"Monitoring",e:"🩺"},
+ {sku:"OXI-03",name:"Fingertip Pulse Oximeter",price:29.99,cat:"Monitoring",e:"📟"},
+ {sku:"GLU-04",name:"Glucose Test Strips (50ct)",price:22.5,cat:"Monitoring",e:"🩸"},
+ {sku:"BAND-05",name:"Adhesive Bandages (100ct)",price:6.49,cat:"First aid",e:"🩹"},
+ {sku:"KIT-06",name:"Family First Aid Kit",price:24.99,cat:"First aid",e:"🧰"},
+ {sku:"SAN-07",name:"Hand Sanitizer 8oz",price:4.99,cat:"First aid",e:"🧴"},
+ {sku:"MASK-08",name:"Contoured Sleep Mask",price:12,cat:"Sleep",e:"😴"},
+ {sku:"WN-09",name:"White Noise Machine",price:27,cat:"Sleep",e:"🔊"},
+ {sku:"BLK-10",name:"Weighted Blanket",price:59,cat:"Sleep",e:"🛏️"},
+ {sku:"SCALE-11",name:"Digital Kitchen Scale",price:18,cat:"Nutrition",e:"⚖️"},
+ {sku:"PILL-12",name:"Weekly Pill Organizer",price:8.5,cat:"Nutrition",e:"💊"},
+ {sku:"VITD-13",name:"Vitamin D3 Supplement (120ct)",price:11.99,cat:"Nutrition",e:"🟡"},
+ {sku:"HEAT-14",name:"Electric Heating Pad",price:31,cat:"Recovery",e:"🔥"},
+ {sku:"COMP-15",name:"Compression Socks",price:16,cat:"Recovery",e:"🧦"},
+ {sku:"ICE-16",name:"Reusable Cold Pack",price:7.99,cat:"Recovery",e:"🧊"}
+];
+var CATS = ["All"].concat(PRODUCTS.map(function(p){return p.cat}).filter(function(c,i,a){return a.indexOf(c)===i}));
+var cat = "All", cart = [], lastOrder = null;
+try { cart = JSON.parse(localStorage.getItem("meridian_cart") || "[]"); lastOrder = JSON.parse(localStorage.getItem("meridian_last_order") || "null"); } catch (e) {}
+
+function save(){ try { localStorage.setItem("meridian_cart", JSON.stringify(cart)); localStorage.setItem("meridian_last_order", JSON.stringify(lastOrder)); } catch (e) {} }
+function pd(p){ return {sku:p.sku,name:p.name,price:p.price,category:p.cat,quantity:1}; }
+function total(){ return Math.round(cart.reduce(function(a,p){return a+p.price},0)*100)/100; }
+function money(n){ return "$" + n.toFixed(2); }
+
+function renderTabs(){
+  var t = document.getElementById("tabs"); t.innerHTML = "";
+  CATS.forEach(function(c){
+    var b = document.createElement("button"); b.textContent = c; if (c === cat) b.className = "on";
+    b.onclick = function(){ cat = c; renderTabs(); renderProducts(); };
+    t.appendChild(b);
+  });
+}
+function renderProducts(){
+  var g = document.getElementById("products"); g.innerHTML = "";
+  PRODUCTS.filter(function(p){ return cat === "All" || p.cat === cat; }).forEach(function(p){
+    var d = document.createElement("div"); d.className = "card prod";
+    d.innerHTML = '<div class="img">'+p.e+'</div><b>'+p.name+'</b><span class="cat">'+p.cat+'</span><span class="price" style="font-size:22px">'+money(p.price)+'</span><div class="row"><button class="ghost" data-v>View</button><button data-a>Add to cart</button></div>';
+    d.querySelector("[data-v]").onclick = function(){ trackEvent("viewed_product", pd(p)); };
+    d.querySelector("[data-a]").onclick = function(){
+      cart.push(p); save(); renderCart();
+      trackEvent("added_to_cart", Object.assign(pd(p), {cart_total: total(), cart_size: cart.length}));
+    };
+    g.appendChild(d);
+  });
+}
+function renderCart(){
+  var ul = document.getElementById("cart");
+  ul.innerHTML = cart.length ? "" : '<li style="color:var(--muted)">Your cart is empty</li>';
+  cart.forEach(function(p, i){
+    var li = document.createElement("li");
+    li.innerHTML = '<span>'+p.e+' '+p.name+'</span><span>'+money(p.price)+' <button class="ghost" style="padding:2px 8px">×</button></span>';
+    li.querySelector("button").onclick = function(){
+      var r = cart.splice(i, 1)[0]; save(); renderCart();
+      trackEvent("removed_from_cart", Object.assign(pd(r), {cart_total: total()}));
+    };
+    ul.appendChild(li);
+  });
+  document.getElementById("total").textContent = cart.length ? "Total " + money(total()) + " (" + cart.length + " items)" : "";
+}
+function showMsg(t){ var m = document.getElementById("msg"); m.textContent = t; m.style.display = "block"; }
+
+document.getElementById("checkout").onclick = function(){
+  if (!cart.length) return showMsg("Add items to your cart first.");
+  trackEvent("checkout_started", {cart_total: total(), items: cart.map(pd), fulfillment: document.getElementById("fulfil").value});
+  showMsg("Checkout started. Place the order to finish, or leave to simulate an abandoned cart.");
+};
+document.getElementById("place").onclick = function(){
+  if (!cart.length) return showMsg("Add items to your cart first.");
+  lastOrder = {order_id: "ord_" + Date.now(), total: total(), currency: "USD", items: cart.map(pd), item_count: cart.length, fulfillment: document.getElementById("fulfil").value};
+  trackEvent("order_placed", lastOrder);
+  identifyUser({email: user.email, last_order_at: Math.floor(Date.now()/1000), has_ordered_supplies: true});
+  cart = []; save(); renderCart();
+  showMsg("Order " + lastOrder.order_id + " placed. Thank you!");
+};
+document.querySelectorAll("[data-life]").forEach(function(b){
+  b.onclick = function(){
+    if (!lastOrder) return showMsg("Place an order first.");
+    trackEvent(b.dataset.life, {order_id: lastOrder.order_id, total: lastOrder.total, fulfillment: lastOrder.fulfillment});
+    showMsg("Sent " + b.dataset.life + " for " + lastOrder.order_id + ".");
+  };
+});
+
+renderTabs(); renderProducts(); renderCart();
+</script>
+</body>
+</html>
