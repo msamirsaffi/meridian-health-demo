@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alerts | Meridian Health</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+<meta name="theme-color" content="#1f8a70">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="cio.js"></script>
+<style>
+.stack{display:grid;gap:12px;max-width:520px;margin:16px auto 0}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;border:1px solid var(--line);color:var(--muted)}
+.ok{color:#12805c;border-color:#12805c}.bad{color:#b42318;border-color:#b42318}
+.steps{color:var(--muted);font-size:14px;padding-left:20px}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="index.html">Meridian Health</a>
+  <nav><a href="index.html">Home</a><a href="plans.html">Plans</a><a href="book.html">Book a visit</a><a href="shop.html">Supply shop</a><a href="alerts.html">Alerts</a></nav>
+</header>
+<main>
+  <section class="hero"><h1>Alerts and app</h1><p>Turn on notifications for appointment reminders and order updates.</p></section>
+
+  <section class="card">
+    <div class="stack">
+      <div><b>Signed in as</b> <span id="who">nobody (sign up on the home page first)</span></div>
+      <div>Tracking mode: <span class="pill" id="mode"></span></div>
+      <div>Browser support: <span class="pill" id="support"></span></div>
+      <div>Web push plugin: <span class="pill" id="plugin">loading</span></div>
+      <div>Permission: <span class="pill" id="perm"></span> Subscription: <span class="pill" id="sub">unknown</span></div>
+
+      <div class="row">
+        <button id="enable" disabled>Turn on alerts</button>
+        <button id="disable" disabled style="background:#8a3b3b">Turn off alerts</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:20px" id="ios">
+    <h3 style="margin-top:0">On iPhone or iPad</h3>
+    <p class="steps" style="margin:0">Web push only works in an installed web app. In Safari, tap <b>Share</b>, then <b>Add to Home Screen</b>. Open Meridian from the Home Screen, sign up or return to this page, and tap <b>Turn on alerts</b>. Requires iOS 16.4 or later.</p>
+    <p class="steps" style="margin:8px 0 0" id="standalone"></p>
+  </section>
+</main>
+<footer>Meridian Health is a fictional demo site for Customer.io testing.</footer>
+<script>
+var $ = function (s) { return document.querySelector(s); };
+var user = getUser();
+if (user && user.email) { $("#who").textContent = user.email; identifyUser({ email: user.email }); }
+
+$("#mode").textContent = window.cioMode;
+$("#mode").className = "pill " + (window.cioMode === "javascript-source" ? "ok" : "bad");
+$("#support").textContent = webPushSupported() ? "supported" : "not supported in this browser or tab";
+$("#support").className = "pill " + (webPushSupported() ? "ok" : "bad");
+var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
+$("#standalone").textContent = standalone ? "Running as an installed app." : "Running in a normal browser tab.";
+
+function say(t) { var m = $("#msg"); m.textContent = t; m.style.display = "block"; }
+
+async function refresh() {
+  var ready = webPushReady();
+  $("#plugin").textContent = ready ? "ready" : (window.cioMode === "javascript-source" ? "loading or not configured" : "needs JavaScript source + VAPID key");
+  $("#plugin").className = "pill " + (ready ? "ok" : "bad");
+  $("#perm").textContent = "Notification" in window ? Notification.permission : "n/a";
+  var s = ready ? await webPushStatus() : null;
+  $("#sub").textContent = s ? "subscribed" : "not subscribed";
+  $("#sub").className = "pill " + (s ? "ok" : "");
+  var can = ready && webPushSupported() && user && user.email;
+  $("#enable").disabled = !can || !!s;
+  $("#disable").disabled = !can || !s;
+}
+
+$("#enable").onclick = function () {
+  $("#enable").disabled = true;
+  // subscribe() must be called straight from the click, with nothing awaited first.
+  webPushSubscribe().then(function () { say("Alerts are on. Send a test from Settings > Push > Web, or use a Web Push action."); return refresh(); })
+    .catch(function (e) {
+      $("#enable").disabled = false;
+      say(Notification.permission === "denied" ? "Notifications are blocked. Allow them in the browser's site settings, then try again." : (e && e.message) || "Could not subscribe.");
+      refresh();
+    });
+};
+$("#disable").onclick = function () {
+  webPushUnsubscribe().then(function () { say("Alerts are off."); return refresh(); }).catch(function (e) { say((e && e.message) || "Could not unsubscribe."); });
+};
+
+document.addEventListener("cio-webpush-ready", refresh);
+refresh();
+setTimeout(refresh, 3000);
+</script>
+</body>
+</html>
