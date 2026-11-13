@@ -5,7 +5,7 @@
    2. Classic Site ID snippet (fallback when WRITE_KEY is empty).
    If neither is set, calls only log to the console. */
 (function () {
-  var WRITE_KEY = "pk_us_oRe2NwLfCoAVtFN412DQIHwGZKlKPlxz_1e1eEF";              // JavaScript source public key (Data & Integrations > Sources > JavaScript)
+  var WRITE_KEY = "pk_us_DuOYBkgOIqzblB8VgrnNO1WJMXp8s5JX_4eL6Uu";              // JavaScript source public key (Data & Integrations > Sources > JavaScript)
   var VAPID_PUBLIC_KEY = "BBKwdaGVxWffArBkLYUWLdJMRRDplhyuiSOpqoTF9HqQDUkklgsMjvtDIf9FSjDnW2iUIuleBfZuFKWwvi1OGTg";       // Settings > Push > Web > Copy public key
   var SITE_ID = "c5cb2083499c59d8055b"; // classic fallback
   var REGION = "us";                  // "us" or "eu"
